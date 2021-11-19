@@ -8,7 +8,8 @@ import (
 )
 
 // temporary directory location
-var srcDir = filepath.FromSlash("C:\\Users\\laugh\\Documents\\Github\\Botnet\\src")
+// var srcDir = filepath.FromSlash("C:\\Users\\laugh\\Documents\\Github\\Botnet\\src")
+var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
 
 func main() {
 
