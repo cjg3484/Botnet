@@ -1,0 +1,136 @@
+package main
+
+import (
+	"bufio"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+)
+
+func decrypt(cipherstring string, keystring string) string {
+	// Byte array of the string
+	ciphertext := []byte(cipherstring)
+
+	// Key
+	key := []byte(keystring)
+
+	// Create the AES cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	// Before even testing the decryption,
+	// if the text is too small, then it is incorrect
+	if len(ciphertext) < aes.BlockSize {
+		panic("Text is too short")
+	}
+
+	// Get the 16 byte IV
+	iv := ciphertext[:aes.BlockSize]
+
+	// Remove the IV from the ciphertext
+	ciphertext = ciphertext[aes.BlockSize:]
+
+	// Return a decrypted stream
+	stream := cipher.NewCFBDecrypter(block, iv)
+
+	// Decrypt bytes from ciphertext
+	stream.XORKeyStream(ciphertext, ciphertext)
+
+	return string(ciphertext)
+}
+
+func encrypt(plainstring, keystring string) string {
+	// Byte array of the string
+	plaintext := []byte(plainstring)
+
+	// Key
+	key := []byte(keystring)
+
+	// Create the AES cipher
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		panic(err)
+	}
+
+	// Empty array of 16 + plaintext length
+	// Include the IV at the beginning
+	ciphertext := make([]byte, aes.BlockSize+len(plaintext))
+
+	// Slice of first 16 bytes
+	iv := ciphertext[:aes.BlockSize]
+
+	// Write 16 rand bytes to fill iv
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		panic(err)
+	}
+
+	// Return an encrypted stream
+	stream := cipher.NewCFBEncrypter(block, iv)
+
+	// Encrypt bytes from plaintext to ciphertext
+	stream.XORKeyStream(ciphertext[aes.BlockSize:], plaintext)
+
+	return string(ciphertext)
+}
+
+func readline() string {
+	bio := bufio.NewReader(os.Stdin)
+	line, _, err := bio.ReadLine()
+	if err != nil {
+		fmt.Println(err)
+	}
+	return string(line)
+}
+
+func writeToFile(data, file string) {
+	ioutil.WriteFile(file, []byte(data), 777)
+}
+
+func readFromFile(file string) ([]byte, error) {
+	data, err := ioutil.ReadFile(file)
+	return data, err
+}
+
+func main() {
+	key := "testtesttesttest"
+
+	// var srcDir = filepath.FromSlash("C:\\Users\\laugh\\Documents\\Github\\Botnet\\src")
+	var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
+
+	for {
+		fmt.Print("What would you like to do? ")
+		line := readline()
+
+		switch line {
+		case "help":
+			fmt.Println("You can:\nencrypt\ndecrypt\nexit")
+		case "exit":
+			os.Exit(0)
+		case "encrypt":
+			fmt.Println("Encrypting plaintext.txt as ciphertext.txt: ")
+			if plaintext, err := readFromFile(filepath.Join(srcDir, "/files/plaintext.txt")); err != nil {
+				fmt.Println("Plaintext file is not found in /src/files/")
+			} else {
+				ciphertext := encrypt(string(plaintext), key)
+				encryptedFile := filepath.Join(srcDir, "/files/ciphertext.txt")
+				writeToFile(ciphertext, encryptedFile)
+				fmt.Println("Wrote to file")
+			}
+		case "decrypt":
+			fmt.Println("Printing decrypted ciphertext.txt: ")
+			if ciphertext, err := readFromFile(filepath.Join(srcDir, "/files/ciphertext.txt")); err != nil {
+				fmt.Println("File is not found")
+			} else {
+				plaintext := decrypt(string(ciphertext), key)
+				fmt.Println(plaintext)
+			}
+		}
+	}
+}
