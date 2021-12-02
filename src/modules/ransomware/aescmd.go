@@ -101,8 +101,8 @@ func readFromFile(file string) ([]byte, error) {
 func main() {
 	key := "testtesttesttest"
 
-	// var srcDir = filepath.FromSlash("C:\\Users\\laugh\\Documents\\Github\\Botnet\\src")
-	var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
+	var srcDir = filepath.FromSlash("C:\\Users\\laugh\\go\\src\\github.com\\cjg3484\\Botnet\\src")
+	// var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
 
 	for {
 		fmt.Print("What would you like to do? ")
