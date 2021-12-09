@@ -8,8 +8,8 @@ import (
 )
 
 // temporary directory location
-var srcDir = filepath.FromSlash("C:\\Users\\laugh\\go\\src\\github.com\\cjg3484\\Botnet\\src")
-// var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
+//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\go\\src\\github.com\\cjg3484\\Botnet\\src")
+var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
 
 func main() {
 
@@ -19,6 +19,8 @@ func main() {
 	http.HandleFunc("/pdf", func(res http.ResponseWriter, req *http.Request) {
 		http.ServeFile(res, req, filepath.Join(srcDir, "/files/PWNED.pdf"))
 	})
+
+	log.Println("Listening...")
 
 	// start HTTP server with `http.DefaultServeMux` handler
 	log.Fatal(http.ListenAndServe("localhost:8081", nil))

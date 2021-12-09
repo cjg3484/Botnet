@@ -1,0 +1,34 @@
+Dropper: (disguised with .pdf)
+    makes pdf - DONE
+    opens pdf - https://stackoverflow.com/questions/12073635/golang-run-default-application-for-a-pdf-file-on-windows
+    GET client from server
+    runs client persistently? (or does client make persistence)
+
+Client:
+    register with server (POST with IP and "im new")
+    POST regularly with "im alive"
+        process POST response, which could be:
+        1. continue, no change
+        2. run screenshot
+            a. GET screenshot.exe
+            b. run screenshot.exe from memory
+            c. send screenshot.exe back
+        3. run ransomware
+            a. GET ransomware.exe
+            b. run ransomware.exe from memory
+        (4. die)
+
+Server:
+    listen for POSTs
+        1. register new clients
+        2. send default response
+        3. send command response
+    CLI:
+        list registered clients + Alive or Dead (calculated by time since last Alive)
+        select client/module - queues command response based off of IP in POST
+
+Screenshot module - DONE
+
+Ransomware module - mostly done, tweak not to be CLI and make sure it doesnt rely on ext files
+
+
