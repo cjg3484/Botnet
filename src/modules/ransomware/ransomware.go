@@ -9,13 +9,12 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 )
 
 var key = "testtesttesttest"
 
 //var srcDir = filepath.FromSlash("C:\\Users\\laugh\\go\\src\\github.com\\cjg3484\\Botnet\\src")
-var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
+//var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
 
 func decrypt(cipherstring string, keystring string) string {
 	// Byte array of the string
@@ -86,7 +85,7 @@ func encrypt(plainstring, keystring string) string {
 }
 
 func writeToFile(data, file string) {
-	err := ioutil.WriteFile(file, []byte(data), 777)
+	err := ioutil.WriteFile(file, []byte(data), 0666)
 	if err != nil {
 		panic(err)
 	}

