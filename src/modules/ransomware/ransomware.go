@@ -1,16 +1,21 @@
 package main
 
 import (
-	"bufio"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 )
+
+var key = "testtesttesttest"
+
+//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\go\\src\\github.com\\cjg3484\\Botnet\\src")
+var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
 
 func decrypt(cipherstring string, keystring string) string {
 	// Byte array of the string
@@ -80,17 +85,11 @@ func encrypt(plainstring, keystring string) string {
 	return string(ciphertext)
 }
 
-func readline() string {
-	bio := bufio.NewReader(os.Stdin)
-	line, _, err := bio.ReadLine()
-	if err != nil {
-		fmt.Println(err)
-	}
-	return string(line)
-}
-
 func writeToFile(data, file string) {
-	ioutil.WriteFile(file, []byte(data), 777)
+	err := ioutil.WriteFile(file, []byte(data), 777)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func readFromFile(file string) ([]byte, error) {
@@ -98,39 +97,58 @@ func readFromFile(file string) ([]byte, error) {
 	return data, err
 }
 
-func main() {
-	key := "testtesttesttest"
-
-	var srcDir = filepath.FromSlash("C:\\Users\\laugh\\go\\src\\github.com\\cjg3484\\Botnet\\src")
-	// var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
-
-	for {
-		fmt.Print("What would you like to do? ")
-		line := readline()
-
-		switch line {
-		case "help":
-			fmt.Println("You can:\nencrypt\ndecrypt\nexit")
-		case "exit":
-			os.Exit(0)
-		case "encrypt":
-			fmt.Println("Encrypting plaintext.txt as ciphertext.txt: ")
-			if plaintext, err := readFromFile(filepath.Join(srcDir, "/files/plaintext.txt")); err != nil {
-				fmt.Println("Plaintext file is not found in /src/files/")
-			} else {
-				ciphertext := encrypt(string(plaintext), key)
-				encryptedFile := filepath.Join(srcDir, "/files/ciphertext.txt")
-				writeToFile(ciphertext, encryptedFile)
-				fmt.Println("Wrote to file")
-			}
-		case "decrypt":
-			fmt.Println("Printing decrypted ciphertext.txt: ")
-			if ciphertext, err := readFromFile(filepath.Join(srcDir, "/files/ciphertext.txt")); err != nil {
-				fmt.Println("File is not found")
-			} else {
-				plaintext := decrypt(string(ciphertext), key)
-				fmt.Println(plaintext)
-			}
+func handleDecrypt(decryptCmd *flag.FlagSet) {
+	//fmt.Println("Printing decrypted ciphertext.txt: ")
+	if ciphertext, err := readFromFile("./ciphertext.txt"); err != nil {
+		fmt.Println("File is not found")
+	} else {
+		plaintext := decrypt(string(ciphertext), key)
+		writeToFile(plaintext, "./plaintext.txt")
+		err := os.Remove("./ciphertext.txt")
+		if err != nil {
+			panic(err)
 		}
+		fmt.Println("y0ur f1l3s h4v3 b33n r37urn3d")
 	}
+}
+
+func handleEncrypt(encryptCmd *flag.FlagSet) {
+
+	writeToFile("Hello World\n¯\\_(ツ)_/¯", "./plaintext.txt")
+
+	if plaintext, err := readFromFile("./plaintext.txt"); err != nil {
+		fmt.Println("Plaintext file is not found")
+	} else {
+		ciphertext := encrypt(string(plaintext), key)
+		encryptedFile := "./ciphertext.txt"
+		writeToFile(ciphertext, encryptedFile)
+		err := os.Remove("./plaintext.txt")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println("all your plaintext are belong to us")
+	}
+}
+
+func main() {
+
+	encryptCmd := flag.NewFlagSet("encrypt", flag.ExitOnError)
+
+	decryptCmd := flag.NewFlagSet("decrypt", flag.ExitOnError)
+
+	if len(os.Args) < 2 {
+		fmt.Println("expected 'encrypt' or 'decrypt' subcommands")
+		os.Exit(1)
+	}
+
+	switch os.Args[1] {
+	case "encrypt":
+		handleEncrypt(encryptCmd)
+	case "decrypt":
+		handleDecrypt(decryptCmd)
+	case "default":
+		fmt.Println("Command not supported")
+		os.Exit(1)
+	}
+
 }

