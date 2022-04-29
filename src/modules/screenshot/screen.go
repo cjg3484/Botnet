@@ -7,31 +7,44 @@ import (
 	"golang.org/x/sys/windows/registry"
 	"image/png"
 	"io"
+	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 )
 
+var opersys = runtime.GOOS
+
 func getmachineid() string {
-	//if windows...
-	k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SQMClient`, registry.QUERY_VALUE)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer k.Close()
+	var id string
+	if opersys == "windows" {
+		k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SQMClient`, registry.QUERY_VALUE)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer k.Close()
 
-	s, _, err := k.GetStringValue("MachineId")
-	s2 := strings.Trim(s, "{}")
-	res1 := strings.Split(s2, "-")
-	id := res1[len(res1)-1]
-	if err != nil {
-		log.Fatal(err)
+		s, _, err := k.GetStringValue("MachineId")
+		s2 := strings.Trim(s, "{}")
+		res1 := strings.Split(s2, "-")
+		id = res1[len(res1)-1]
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if opersys == "linux" {
+		data, err := ioutil.ReadFile("/etc/machine-id")
+		if err != nil {
+			panic(err)
+		}
+		id = string(data)
+	} else {
+		fmt.Println("unsupported OS")
+		os.Exit(1)
 	}
-	//fmt.Println(s2)
-
 	return id
 }
 
@@ -87,27 +100,19 @@ func screengrab() {
 		png.Encode(file, img)
 
 		//fmt.Printf("#%d : %v \"%s\"\n", i, bounds, fileName)
-		err = call("http://localhost:8081/upload", "POST", fileName)
+		switch opersys {
+		case "windows":
+			err = call("http://localhost:8081/upload", "POST", fileName)
+		case "linux":
+			err = call("http://127.0.1.1:8081/upload", "POST", fileName)
+		case "default":
+			fmt.Println("OS unsupported")
+			os.Exit(1)
+		}
 		if err != nil {
 			panic(err)
 		}
-
-		//err = file.Close()
-		//if err != nil {
-		//	panic(err)
-		//}
-		//err = os.Remove(fileName)
-		//if err != nil {
-		//	panic(err)
-		//}
 	}
-	//for j := 0; j <= i; j++ {
-	//	fileName := fmt.Sprintf("%s_%d.png", idnum, j)
-	//	err := os.Remove(fileName)
-	//	if err != nil {
-	//		panic(err)
-	//	}
-	//}
 }
 
 func main() {
