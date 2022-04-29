@@ -16,7 +16,7 @@ type bot struct {
 }
 
 func getBots() (bots []bot) {
-	fileBytes, err := ioutil.ReadFile("../server/bots.json")
+	fileBytes, err := ioutil.ReadFile("./bots.json")
 
 	if err != nil {
 		panic(err)
@@ -38,7 +38,7 @@ func saveBots(bots []bot) {
 		panic(err)
 	}
 
-	err = ioutil.WriteFile("../server/bots.json", botBytes, 0666)
+	err = ioutil.WriteFile("./bots.json", botBytes, 0666)
 	if err != nil {
 		panic(err)
 	}

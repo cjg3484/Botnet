@@ -13,9 +13,6 @@ import (
 
 var key = "testtesttesttest"
 
-//var srcDir = filepath.FromSlash("C:\\Users\\laugh\\go\\src\\github.com\\cjg3484\\Botnet\\src")
-//var srcDir = filepath.FromSlash("H:\\GitHub\\Botnet\\src")
-
 func decrypt(cipherstring string, keystring string) string {
 	// Byte array of the string
 	ciphertext := []byte(cipherstring)

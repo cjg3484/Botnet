@@ -4,51 +4,23 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/kbinani/screenshot"
-	"golang.org/x/sys/windows/registry"
+	"github.com/rs/xid"
 	"image/png"
 	"io"
-	"io/ioutil"
 	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
-	"runtime"
-	"strings"
 	"time"
 )
 
-var opersys = runtime.GOOS
-
-func getmachineid() string {
-	var id string
-	if opersys == "windows" {
-		k, err := registry.OpenKey(registry.LOCAL_MACHINE, `SOFTWARE\Microsoft\SQMClient`, registry.QUERY_VALUE)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer k.Close()
-
-		s, _, err := k.GetStringValue("MachineId")
-		s2 := strings.Trim(s, "{}")
-		res1 := strings.Split(s2, "-")
-		id = res1[len(res1)-1]
-		if err != nil {
-			log.Fatal(err)
-		}
-	} else if opersys == "linux" {
-		data, err := ioutil.ReadFile("/etc/machine-id")
-		if err != nil {
-			panic(err)
-		}
-		id = string(data)
-	} else {
-		fmt.Println("unsupported OS")
-		os.Exit(1)
-	}
+func getid() string {
+	guid := xid.New()
+	id := guid.String()
 	return id
 }
 
-var idnum = getmachineid()
+var idnum = getid()
 
 func call(urlPath, method string, filename string) error {
 	client := &http.Client{
@@ -100,15 +72,8 @@ func screengrab() {
 		png.Encode(file, img)
 
 		//fmt.Printf("#%d : %v \"%s\"\n", i, bounds, fileName)
-		switch opersys {
-		case "windows":
-			err = call("http://localhost:8081/upload", "POST", fileName)
-		case "linux":
-			err = call("http://127.0.1.1:8081/upload", "POST", fileName)
-		case "default":
-			fmt.Println("OS unsupported")
-			os.Exit(1)
-		}
+
+		err = call("http://192.168.121.128:8081/upload", "POST", fileName)
 		if err != nil {
 			panic(err)
 		}
